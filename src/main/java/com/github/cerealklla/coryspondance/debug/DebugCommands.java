@@ -1,5 +1,6 @@
 package com.github.cerealklla.coryspondance.debug;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -9,6 +10,7 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 
 import com.github.cerealklla.coryspondance.api.Coryspondance;
+import com.github.cerealklla.coryspondance.mail.Letter;
 
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -58,9 +60,31 @@ public final class DebugCommands {
             ctx.getSource().sendFailure(Component.literal("No known player named \"" + playerName + "\" (they need to have joined this server at least once)."));
             return 0;
         }
+        // Real incident, 2026-10-12: a first version of this command put the whole requested amount
+        // into ONE ItemStack -- fine for a small test (givetest's flat 5), but a flat 500-gold reward
+        // amount set the same day immediately broke it. A single Gold Nugget stack's own real max
+        // (64, same as any vanilla item not explicitly unstackable) is well below what this command
+        // needs to support, and the letter's own attachment encoding rejected the oversized stack
+        // outright rather than silently clamping it -- caught immediately (nothing was actually saved
+        // to the recipient's data; confirmed via a direct `data get entity` check before this fix).
+        // Splits across multiple full-size stacks instead, up to the letter's own attachment cap.
+        int maxStackSize = new ItemStack(Items.GOLD_NUGGET).getMaxStackSize();
+        int maxGoldPerLetter = maxStackSize * Letter.MAX_ATTACHMENTS;
+        if (gold > maxGoldPerLetter) {
+            ctx.getSource().sendFailure(Component.literal(
+                    "That's too much for one letter -- max is " + maxGoldPerLetter + " Gold Nuggets (send multiple letters for more)."));
+            return 0;
+        }
+        List<ItemStack> attachments = new ArrayList<>();
+        int remaining = gold;
+        while (remaining > 0) {
+            int stackCount = Math.min(remaining, maxStackSize);
+            attachments.add(new ItemStack(Items.GOLD_NUGGET, stackCount));
+            remaining -= stackCount;
+        }
+
         UUID toPlayerId = profile.get().id();
-        Coryspondance.sendSystemMail(ctx.getSource().getServer(), toPlayerId, "Kyngdoms",
-                message, List.of(new ItemStack(Items.GOLD_NUGGET, gold)));
+        Coryspondance.sendSystemMail(ctx.getSource().getServer(), toPlayerId, "Kyngdoms", message, attachments);
         ctx.getSource().sendSuccess(() -> Component.literal("Mailed " + gold + " Gold Nugget(s) to " + playerName + "."), true);
         return 1;
     }
