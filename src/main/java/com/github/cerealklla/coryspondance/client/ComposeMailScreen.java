@@ -18,28 +18,37 @@ import net.minecraft.world.entity.player.Inventory;
 /**
  * Write-a-letter screen (explicit user spec, 2026-10-12: letters "can come from... other players") --
  * a real {@link ComposeMailMenu} (9 slots the player drags their own items into, standard inventory
- * grid below) plus two plain client-side widgets stacked above the container box, same "extra widget
- * positioned above {@code topPos}" trick Yconomics' own {@code bag.client.LootBagScreen} already uses
- * for its Take All button.
+ * grid below), plus a recipient box, a message box, and a Send button placed in a dedicated extra
+ * area below the vanilla chest/inventory box.
  *
- * <p>{@link #pendingPrefillRecipient} is a one-shot static handoff from {@code MailboxScreen}'s
- * "Reply" button, set immediately before requesting this menu open and consumed here in {@link
- * #init()} -- a container-open packet carries no room for arbitrary extra text, and the recipient
- * field is purely a client-side convenience (the server never needs to know "this was a reply").
+ * <p><b>Fixed 2026-10-12, real live report</b>: the first version placed those three widgets at
+ * negative y-offsets above {@code topPos} (the same trick Yconomics' {@code bag.client.LootBagScreen}
+ * uses for its single Take All button), which only has room on a tall enough window -- at the user's
+ * own resolution it ran off the top of the screen entirely. The real fix is to size this screen's own
+ * {@code imageHeight} to actually include that space (so {@code topPos} -- which centers the *whole*
+ * window -- accounts for it), not to keep hoping there's free space above an unrelated vanilla box.
+ * The extra widgets now live *below* the chest box instead (in the newly added room), which also
+ * sidesteps the same problem from ever recurring regardless of window size.
  */
 public final class ComposeMailScreen extends AbstractContainerScreen<ComposeMailMenu> {
 
     private static final Identifier CONTAINER_BACKGROUND = Identifier.withDefaultNamespace("textures/gui/container/generic_54.png");
     private static final int MESSAGE_BOX_HEIGHT = 60;
+    private static final int WIDGET_GAP = 6;
+    private static final int SEND_BUTTON_HEIGHT = 20;
+    // Top/bottom padding around the extra widget area, plus the recipient box's own 18px height.
+    private static final int TEXT_AREA_HEIGHT = 10 + 18 + WIDGET_GAP + MESSAGE_BOX_HEIGHT + WIDGET_GAP + SEND_BUTTON_HEIGHT + 10;
 
     public static String pendingPrefillRecipient = "";
 
+    private final int chestBoxHeight;
     private EditBox recipientBox;
     private MultiLineEditBox messageBox;
 
     public ComposeMailScreen(ComposeMailMenu menu, Inventory inventory, Component title) {
-        super(menu, inventory, title, 176, 114 + menu.getRowCount() * 18);
-        this.inventoryLabelY = this.imageHeight - 94;
+        super(menu, inventory, title, 176, 114 + menu.getRowCount() * 18 + TEXT_AREA_HEIGHT);
+        this.chestBoxHeight = 114 + menu.getRowCount() * 18;
+        this.inventoryLabelY = this.chestBoxHeight - 94;
     }
 
     @Override
@@ -48,8 +57,9 @@ public final class ComposeMailScreen extends AbstractContainerScreen<ComposeMail
 
         int boxLeft = leftPos;
         int boxWidth = imageWidth;
-        int recipientY = topPos - 24 - MESSAGE_BOX_HEIGHT - 24;
-        int messageY = topPos - 24 - MESSAGE_BOX_HEIGHT;
+        int recipientY = topPos + chestBoxHeight + 10;
+        int messageY = recipientY + 18 + WIDGET_GAP;
+        int buttonY = messageY + MESSAGE_BOX_HEIGHT + WIDGET_GAP;
 
         recipientBox = new EditBox(font, boxLeft, recipientY, boxWidth, 18, Component.literal("Recipient"));
         recipientBox.setMaxLength(16);
@@ -65,7 +75,7 @@ public final class ComposeMailScreen extends AbstractContainerScreen<ComposeMail
         addRenderableWidget(messageBox);
 
         addRenderableWidget(Button.builder(Component.literal("Send"), b -> send())
-                .bounds(leftPos + imageWidth - 70, topPos - 24, 70, 20).build());
+                .bounds(leftPos + imageWidth - 70, buttonY, 70, SEND_BUTTON_HEIGHT).build());
     }
 
     private void send() {
