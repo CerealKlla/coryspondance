@@ -65,4 +65,14 @@ beyond "it boots."
 - No "Sent" folder or delivery confirmation for the sender.
 - Reply only pre-fills the recipient name in Compose — no real threading.
 
+**Mailbox ported into a new foundation mod's shared menu, 2026-10-17** -- a new suite-wide mod,
+**Nuclyus** (hard-required by every mod, see its own CLAUDE.md), now owns a shared tabbed "K" menu
+any mod can contribute to. The old standalone `client.MailboxScreen` is now a thin host wrapping a
+new `menu.client.MailboxTab`, also what Nuclyus's shared menu shows as its "Mail" tab when
+Coryspondance is loaded -- identical behavior either way. "Claim Items"/"Write Letter"/"Reply" are
+completely unchanged: the server still replaces whatever screen is open with a real container menu,
+which transparently closes the shared menu exactly as it always closed the standalone screen. The
+standalone "N" keybind is unaffected. `./gradlew build` green in both repos, whole-suite (12 mods)
+rebuild green, `runServer` boot-smoke-tested clean. **Not yet live-tested in a real client.**
+
 See [context/classes/](context/classes/) for per-class reference.
