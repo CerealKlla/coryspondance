@@ -10,6 +10,7 @@ import com.github.cerealklla.coryspondance.net.DeleteLetterPayload;
 import com.github.cerealklla.coryspondance.net.OpenLetterPayload;
 import com.github.cerealklla.coryspondance.net.RequestComposePayload;
 import com.github.cerealklla.coryspondance.registration.ModAttachments;
+import com.github.cerealklla.nuclyus.client.TextWrap;
 import com.github.cerealklla.nuclyus.menu.client.NuclyusMenu;
 import com.github.cerealklla.nuclyus.menu.client.WidgetHost;
 
@@ -254,28 +255,10 @@ public final class MailboxTab implements NuclyusMenu {
     }
 
     private int drawWrapped(GuiGraphicsExtractor graphics, Font font, String text, int x, int y, int wrapWidth, int color, int lineHeight) {
-        for (String line : wrapToWidth(font, text, wrapWidth)) {
+        for (String line : TextWrap.wrap(font, text, wrapWidth)) {
             graphics.text(font, Component.literal(line), x, y, color, false);
             y += lineHeight;
         }
         return y;
-    }
-
-    private static List<String> wrapToWidth(Font font, String text, int wrapWidth) {
-        List<String> lines = new ArrayList<>();
-        StringBuilder current = new StringBuilder();
-        for (String word : text.split(" ")) {
-            String candidate = current.isEmpty() ? word : current + " " + word;
-            if (font.width(candidate) > wrapWidth && !current.isEmpty()) {
-                lines.add(current.toString());
-                current = new StringBuilder(word);
-            } else {
-                current = new StringBuilder(candidate);
-            }
-        }
-        if (!current.isEmpty() || lines.isEmpty()) {
-            lines.add(current.toString());
-        }
-        return lines;
     }
 }
