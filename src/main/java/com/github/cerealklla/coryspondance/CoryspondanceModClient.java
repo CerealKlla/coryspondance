@@ -36,6 +36,15 @@ public class CoryspondanceModClient {
         event.register(OPEN_MAILBOX);
     }
 
+    // Menu consolidation (2026-10-17) -- contributes the "Mail" tab to Nuclyus's shared "K" menu.
+    // See com.github.cerealklla.nuclyus.menu.client.MenuContributor's own doc. "N" below is
+    // untouched and keeps working standalone, same reasoning as every other contributing mod.
+    @SubscribeEvent
+    static void onClientSetup(net.neoforged.fml.event.lifecycle.FMLClientSetupEvent event) {
+        com.github.cerealklla.nuclyus.menu.client.NuclyusMenuRegistry.registerContributor(
+                () -> java.util.List.of(new com.github.cerealklla.coryspondance.menu.client.MailboxTab()));
+    }
+
     @SubscribeEvent
     static void onRegisterMenuScreens(RegisterMenuScreensEvent event) {
         event.register(ModMenus.LETTER.get(), LetterScreen::new);
