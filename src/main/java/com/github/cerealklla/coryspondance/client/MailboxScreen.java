@@ -32,6 +32,11 @@ public final class MailboxScreen extends Screen implements WidgetHost {
     }
 
     @Override
+    public Rect2i contentArea() {
+        return area();
+    }
+
+    @Override
     protected void init() {
         tab.onShown();
     }
